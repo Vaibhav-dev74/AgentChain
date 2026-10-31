@@ -45,6 +45,7 @@ contracts/typechain-types/
 contracts/.openzeppelin/
 
 # Environments & Secrets
+.cache/
 .env
 .env.local
 .env.*.local
@@ -66,3 +67,4 @@ Thumbs.db
 *.sqlite3
 data/
 db/
+
