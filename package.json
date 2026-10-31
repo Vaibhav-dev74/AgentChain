@@ -1,0 +1,31 @@
+{
+  "name": "agentchain-ai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AgentChain AI — AI-Powered Blockchain Automation & Verifiable Agent Execution Platform",
+  "scripts": {
+    "dev:web": "pnpm --filter @agentchain/web dev",
+    "build:web": "pnpm --filter @agentchain/web build",
+    "test:web": "pnpm --filter @agentchain/web test",
+    "compile:contracts": "pnpm --filter @agentchain/contracts compile",
+    "test:contracts": "pnpm --filter @agentchain/contracts test",
+    "node:contracts": "pnpm --filter @agentchain/contracts node",
+    "deploy:contracts": "pnpm --filter @agentchain/contracts deploy:local",
+    "build": "pnpm --filter @agentchain/shared-types build && pnpm --filter @agentchain/contracts compile && pnpm --filter @agentchain/web build",
+    "test": "pnpm --filter @agentchain/contracts test && pnpm --filter @agentchain/web test"
+  },
+  "keywords": [
+    "ai-agent",
+    "blockchain",
+    "ethereum",
+    "solidity",
+    "fastapi",
+    "react",
+    "web3"
+  ],
+  "author": "Vaibhav-dev74",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
