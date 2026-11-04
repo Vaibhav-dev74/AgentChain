@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: agentchain-db
+    environment:
+      POSTGRES_USER: agentchain
+      POSTGRES_PASSWORD: agentchain_secure_password
+      POSTGRES_DB: agentchain_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentchain -d agentchain_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.api
+    container_name: agentchain-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://agentchain:agentchain_secure_password@postgres:5432/agentchain_db
+      JWT_SECRET: super-secure-jwt-production-secret-token-32b
+      ENVIRONMENT: production
+      PORT: 8000
+      ETHEREUM_RPC_URL: http://contracts-node:8545
+      CHAIN_ID: 31337
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ../../
+      dockerfile: infra/docker/Dockerfile.web
+    container_name: agentchain-web
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  pgdata:

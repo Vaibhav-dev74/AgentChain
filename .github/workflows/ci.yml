@@ -1,0 +1,75 @@
+name: AgentChain AI - Continuous Integration
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  smart-contracts:
+    name: Smart Contracts & Security Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Install Monorepo Dependencies
+        run: pnpm install
+
+      - name: Compile Solidity Contracts
+        run: pnpm --filter @agentchain/contracts compile
+
+      - name: Run Hardhat Test Suite
+        run: pnpm --filter @agentchain/contracts test
+
+  backend-api:
+    name: FastAPI Core & AI Policy Engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r services/api/requirements.txt pycryptodome httpx
+
+      - name: Run Automated Backend & Policy Tests
+        run: |
+          python services/api/run_tests.py
+
+  frontend-build:
+    name: React Web Application Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Build Web Client
+        run: pnpm --filter @agentchain/web build
