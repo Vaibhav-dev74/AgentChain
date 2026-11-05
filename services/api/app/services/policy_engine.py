@@ -5,7 +5,7 @@ Enforces rule verification, parameter bounds, target whitelisting, and risk scor
 import json
 from datetime import datetime, timezone
 from typing import List, Tuple, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from app.models.policy import PolicyRule
@@ -115,9 +115,9 @@ class PolicyEngine:
         )
 
     @classmethod
-    async def evaluate_proposal(
+    def evaluate_proposal(
         cls,
-        session: AsyncSession,
+        session: Session,
         operation_type: str,
         amount: float,
         target_address: str,
@@ -129,11 +129,11 @@ class PolicyEngine:
             PolicyRule.operation_type == operation_type,
             PolicyRule.is_active == True,
         )
-        result = await session.execute(query)
+        result = session.execute(query)
         policy = result.scalar_one_or_none()
 
         agent_query = select(Agent).where(Agent.id == agent_id)
-        agent_res = await session.execute(agent_query)
+        agent_res = session.execute(agent_query)
         agent = agent_res.scalar_one_or_none()
 
         return cls.evaluate_rules(

@@ -185,3 +185,4 @@ export const AIWorkspaceView: React.FC<AIWorkspaceProps> = ({
     </div>
   );
 };
+

@@ -104,3 +104,4 @@ export const Navbar: React.FC<{ onOpenAuth: () => void }> = ({ onOpenAuth }) => 
     </header>
   );
 };
+

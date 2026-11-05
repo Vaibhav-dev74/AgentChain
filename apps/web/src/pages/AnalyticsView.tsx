@@ -150,3 +150,4 @@ export const AnalyticsView: React.FC<AnalyticsProps> = ({ analytics }) => {
     </div>
   );
 };
+

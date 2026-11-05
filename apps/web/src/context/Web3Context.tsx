@@ -169,3 +169,4 @@ export const useWeb3 = () => {
   if (!context) throw new Error('useWeb3 must be used within a Web3Provider');
   return context;
 };
+

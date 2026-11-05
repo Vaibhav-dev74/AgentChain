@@ -150,3 +150,4 @@ export const BlockchainExplorerView: React.FC<ExplorerProps> = ({ explorerData }
     </div>
   );
 };
+

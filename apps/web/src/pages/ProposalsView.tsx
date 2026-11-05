@@ -102,3 +102,4 @@ export const ProposalsView: React.FC<ProposalsViewProps> = ({
     </div>
   );
 };
+

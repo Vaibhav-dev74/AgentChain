@@ -76,3 +76,4 @@ export const ApprovalCenterView: React.FC<ApprovalCenterProps> = ({
     </div>
   );
 };
+

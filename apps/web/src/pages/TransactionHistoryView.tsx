@@ -87,3 +87,4 @@ export const TransactionHistoryView: React.FC<TransactionHistoryProps> = ({ tran
     </div>
   );
 };
+

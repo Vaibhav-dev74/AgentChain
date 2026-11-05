@@ -1,6 +1,7 @@
 """
 AgentChain AI - FastAPI Main Application Entrypoint
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,12 +14,21 @@ from app.api.v1.proposals import router as proposals_router
 from app.api.v1.explorer import router as explorer_router
 from app.api.v1.analytics import router as analytics_router
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize database tables and seed initial administrator & policies
+    init_db()
+    yield
+
+
 app = FastAPI(
     title="AgentChain AI API",
     description="AI-Powered Blockchain Automation & Verifiable Agent Execution Platform",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # CORS Middleware
@@ -62,4 +72,4 @@ def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host=settings.HOST, port=settings.PORT, reload=True)
+    uvicorn.run(app, host=settings.HOST, port=settings.PORT)

@@ -310,3 +310,4 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
     </div>
   );
 };
+
