@@ -208,7 +208,9 @@ pnpm --filter @agentchain/contracts test
 npx hardhat node --dir contracts
 
 # Deploy contracts to local network (Terminal 2)
-pnpm --filter @agentchain/contracts deploy
+pnpm --filter @agentchain/contracts run deploy
+# or from root:
+# pnpm run deploy:contracts
 ```
 
 ### 5. Backend API: Setup & Run

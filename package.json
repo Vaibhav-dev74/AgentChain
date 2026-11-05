@@ -10,7 +10,7 @@
     "compile:contracts": "pnpm --filter @agentchain/contracts compile",
     "test:contracts": "pnpm --filter @agentchain/contracts test",
     "node:contracts": "pnpm --filter @agentchain/contracts node",
-    "deploy:contracts": "pnpm --filter @agentchain/contracts deploy:local",
+    "deploy:contracts": "pnpm --filter @agentchain/contracts run deploy:local",
     "build": "pnpm --filter @agentchain/shared-types build && pnpm --filter @agentchain/contracts compile && pnpm --filter @agentchain/web build",
     "test": "pnpm --filter @agentchain/contracts test && pnpm --filter @agentchain/web test"
   },
@@ -29,4 +29,3 @@
     "typescript": "^5.5.4"
   }
 }
-
