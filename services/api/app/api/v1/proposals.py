@@ -225,18 +225,22 @@ def record_proposal_execution(
     )
     db.add(execution)
 
-    # Log in transaction_records
-    tx_record = TransactionRecord(
-        transaction_hash=exec_in.transaction_hash,
-        from_address=current_user.wallet_address or "0x0000000000000000000000000000000000000000",
-        to_address=proposal.target_address,
-        value_wei=proposal.value_wei,
-        gas_used=exec_in.gas_used,
-        status=exec_in.status,
-        block_number=exec_in.block_number,
-        input_data=proposal.call_data,
-    )
-    db.add(tx_record)
+    # Log in transaction_records if not already logged
+    existing_tx = db.execute(
+        select(TransactionRecord).where(TransactionRecord.transaction_hash == exec_in.transaction_hash)
+    ).scalar_one_or_none()
+    if not existing_tx:
+        tx_record = TransactionRecord(
+            transaction_hash=exec_in.transaction_hash,
+            from_address=current_user.wallet_address or "0x0000000000000000000000000000000000000000",
+            to_address=proposal.target_address,
+            value_wei=proposal.value_wei,
+            gas_used=exec_in.gas_used,
+            status=exec_in.status,
+            block_number=exec_in.block_number,
+            input_data=proposal.call_data,
+        )
+        db.add(tx_record)
 
     db.commit()
     db.refresh(proposal)

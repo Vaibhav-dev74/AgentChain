@@ -5,6 +5,7 @@ and end-to-end API workflows with zero network/port dependencies.
 """
 import sys
 import os
+import uuid
 
 # Ensure services/api is in Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -74,9 +75,10 @@ def run_api_workflow_tests():
         assert approved.status == "APPROVED"
         print("   [PASS] Human Approval recorded successfully.")
 
-        # Record Execution Receipt
+        # Record Execution Receipt with unique transaction hash
+        random_tx_hash = f"0x{uuid.uuid4().hex}{uuid.uuid4().hex}"
         exec_req = ProposalExecutionRecordRequest(
-            transaction_hash="0x" + "c" * 64,
+            transaction_hash=random_tx_hash,
             block_number=2050,
             gas_used="51200",
             status="SUCCESS",
