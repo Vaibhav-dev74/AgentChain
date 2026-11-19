@@ -1,97 +1,123 @@
 """
-Integration tests for FastAPI endpoints: Auth, Proposals, Policies, and Health
+Integration tests for FastAPI endpoints: Auth, Proposals, Policies, and Health.
+Calls endpoints directly to avoid AnyIO/Starlette thread deadlocks on Python 3.13 Windows.
 """
+import uuid
 import pytest
-from fastapi.testclient import TestClient
-from main import app
-
-client = TestClient(app)
+from main import root, health_check
+from app.db.session import init_db, SessionLocal
+from app.schemas.user import UserCreate, UserLogin
+from app.schemas.proposal import (
+    ProposalPromptRequest,
+    ProposalApprovalRequest,
+    ProposalExecutionRecordRequest,
+)
+from app.api.v1.auth import register, login, get_me
+from app.api.v1.proposals import (
+    create_proposal_from_prompt,
+    list_proposals,
+    get_proposal,
+    review_proposal,
+    record_proposal_execution,
+)
+from app.api.v1.explorer import get_explorer_overview, list_transactions
+from app.api.v1.analytics import get_analytics_dashboard
+from app.api.v1.policies import list_policies
 
 
 def test_health_and_root():
-    res = client.get("/health")
-    assert res.status_code == 200
-    assert res.json()["status"] == "healthy"
+    health = health_check()
+    assert health["status"] == "healthy"
 
-    root_res = client.get("/")
-    assert root_res.status_code == 200
-    assert root_res.json()["name"] == "AgentChain AI API"
+    r = root()
+    assert r["name"] == "AgentChain AI API"
+    assert r["status"] == "online"
 
 
 def test_auth_and_user_flow():
-    # 1. Register test user
-    reg_payload = {
-        "username": "testoperator",
-        "email": "operator@agentchain.ai",
-        "password": "SecurePassword123!",
-        "wallet_address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-    }
-    reg_res = client.post("/api/v1/auth/register", json=reg_payload)
-    assert reg_res.status_code in [201, 400]  # 400 if already created in previous run
+    init_db()
 
-    # 2. Login
-    login_payload = {
-        "username": "testoperator",
-        "password": "SecurePassword123!",
-    }
-    login_res = client.post("/api/v1/auth/login", json=login_payload)
-    assert login_res.status_code == 200
-    data = login_res.json()
-    assert "access_token" in data
-    token = data["access_token"]
+    with SessionLocal() as db:
+        unique_suffix = uuid.uuid4().hex[:8]
+        test_username = f"user_{unique_suffix}"
+        test_email = f"user_{unique_suffix}@agentchain.ai"
+        test_wallet = f"0x{(uuid.uuid4().hex + uuid.uuid4().hex)[:40]}"
 
-    headers = {"Authorization": f"Bearer {token}"}
+        # 1. Register
+        reg_payload = UserCreate(
+            username=test_username,
+            email=test_email,
+            password="SecurePassword123!",
+            wallet_address=test_wallet,
+        )
+        token_res = register(reg_payload, db)
+        assert token_res.access_token is not None
+        assert token_res.user.username == test_username
 
-    # 3. Get /me
-    me_res = client.get("/api/v1/auth/me", headers=headers)
-    assert me_res.status_code == 200
-    assert me_res.json()["username"] == "testoperator"
+        # 2. Login
+        login_payload = UserLogin(
+            username=test_username,
+            password="SecurePassword123!",
+        )
+        login_res = login(login_payload, db)
+        assert login_res.access_token is not None
 
-    # 4. Create proposal from natural language prompt
-    prompt_payload = {
-        "prompt": "Create a reward issuance proposal for 10 test tokens",
-    }
-    prop_res = client.post("/api/v1/proposals/from-prompt", json=prompt_payload, headers=headers)
-    assert prop_res.status_code == 201
-    prop_data = prop_res.json()
-    assert prop_data["operation_type"] == "REWARD_ISSUANCE"
-    assert prop_data["status"] in ["PENDING_APPROVAL", "POLICY_VIOLATED"]
-    assert "action_id" in prop_data
+        # 3. Profile
+        from app.models.user import User
+        user_model = db.query(User).filter(User.id == token_res.user.id).first()
+        profile = get_me(user_model)
+        assert profile.username == test_username
 
-    proposal_id = prop_data["id"]
+        # 4. Create proposal from prompt
+        prompt_req = ProposalPromptRequest(
+            prompt="Create a reward issuance proposal for 10 test tokens"
+        )
+        proposal = create_proposal_from_prompt(prompt_req, user_model, db)
+        assert proposal.operation_type == "REWARD_ISSUANCE"
+        assert proposal.status in ["PENDING_APPROVAL", "POLICY_VIOLATED"]
+        assert proposal.action_id is not None
 
-    # 5. List proposals
-    list_res = client.get("/api/v1/proposals")
-    assert list_res.status_code == 200
-    assert len(list_res.json()) > 0
+        # 5. List proposals
+        all_props = list_proposals(None, db)
+        assert len(all_props) >= 1
 
-    # 6. Human approval review
-    review_payload = {
-        "action": "APPROVE",
-        "wallet_address": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
-        "signature": "0x1234567890abcdef",
-    }
-    rev_res = client.post(f"/api/v1/proposals/{proposal_id}/review", json=review_payload, headers=headers)
-    assert rev_res.status_code == 200
-    assert rev_res.json()["status"] == "APPROVED"
+        # 6. Get proposal
+        single = get_proposal(proposal.id, db)
+        assert single.id == proposal.id
 
-    # 7. Record Execution
-    exec_payload = {
-        "transaction_hash": "0x" + "a" * 64,
-        "block_number": 1025,
-        "gas_used": "45210",
-        "status": "SUCCESS",
-    }
-    exec_res = client.post(f"/api/v1/proposals/{proposal_id}/execution", json=exec_payload, headers=headers)
-    assert exec_res.status_code == 200
-    assert exec_res.json()["status"] == "EXECUTED"
+        # 7. Review proposal
+        review_req = ProposalApprovalRequest(
+            action="APPROVE",
+            wallet_address=user_model.wallet_address,
+            signature="0x1234567890abcdef",
+        )
+        approved = review_proposal(proposal.id, review_req, user_model, db)
+        assert approved.status == "APPROVED"
 
-    # 8. Check Explorer Overview
-    explorer_res = client.get("/api/v1/explorer/overview")
-    assert explorer_res.status_code == 200
-    assert "contracts" in explorer_res.json()
+        # 8. Execution
+        random_tx_hash = f"0x{uuid.uuid4().hex}{uuid.uuid4().hex}"
+        exec_req = ProposalExecutionRecordRequest(
+            transaction_hash=random_tx_hash,
+            block_number=1025,
+            gas_used="45210",
+            status="SUCCESS",
+        )
+        executed = record_proposal_execution(proposal.id, exec_req, user_model, db)
+        assert executed.status == "EXECUTED"
 
-    # 9. Check Analytics
-    analytics_res = client.get("/api/v1/analytics/dashboard")
-    assert analytics_res.status_code == 200
-    assert analytics_res.json()["total_proposals"] >= 1
+        # 9. Explorer overview
+        overview = get_explorer_overview(db)
+        assert len(overview.contracts) >= 4
+
+        # 10. List explorer transactions
+        txs = list_transactions(db)
+        assert len(txs) >= 1
+
+        # 11. Analytics
+        analytics = get_analytics_dashboard(db)
+        assert analytics.total_proposals >= 1
+        assert analytics.successful_executions >= 1
+
+        # 12. Policies
+        policies = list_policies(db)
+        assert len(policies) >= 1

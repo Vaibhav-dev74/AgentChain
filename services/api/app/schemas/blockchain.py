@@ -2,7 +2,7 @@
 Blockchain and Explorer Pydantic Schemas
 """
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class BlockchainEventResponse(BaseModel):
@@ -15,8 +15,7 @@ class BlockchainEventResponse(BaseModel):
     parameters: Dict[str, Any]
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class TransactionRecordResponse(BaseModel):
@@ -31,8 +30,7 @@ class TransactionRecordResponse(BaseModel):
     input_data: str
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ContractInfo(BaseModel):
@@ -48,4 +46,4 @@ class ExplorerOverviewResponse(BaseModel):
     latest_block: int
     contracts: List[ContractInfo]
     recent_transactions: List[TransactionRecordResponse]
-    recent_events: List[BlockchainEventResponse]
+    recent_events: List[BlockchainEventResponse] = []

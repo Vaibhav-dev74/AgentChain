@@ -3,14 +3,21 @@ AgentChain AI - Blockchain Event Indexer Service
 Listens to smart contract events on ActionLedger, AgentRegistry, and RewardVault,
 persisting on-chain telemetry and syncing execution states to the database.
 """
+import sys
+import os
 import asyncio
 import json
 import logging
 from typing import List, Dict, Any
 from web3 import AsyncWeb3, AsyncHTTPProvider
 
+# Ensure services/api is in sys.path
+api_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "api"))
+if api_dir not in sys.path:
+    sys.path.insert(0, api_dir)
+
 from app.core.config import settings
-from app.db.session import async_session_factory
+from app.db.session import SessionLocal
 from app.models.blockchain import BlockchainEvent
 from app.models.proposal import ActionProposal
 
@@ -38,7 +45,6 @@ class BlockchainIndexer:
     async def index_block_range(self, from_block: int, to_block: int):
         """Index events across configured contracts for given block range."""
         try:
-            # Fetch logs for ActionLedger
             ledger_filter = {
                 "fromBlock": from_block,
                 "toBlock": to_block,
@@ -46,12 +52,12 @@ class BlockchainIndexer:
             }
             logs = await self.w3.eth.get_logs(ledger_filter)
             for log in logs:
-                await self._process_log(log, "ActionLedger")
+                self._process_log(log, "ActionLedger")
         except Exception as e:
             logger.debug(f"Error querying logs from block {from_block} to {to_block}: {e}")
 
-    async def _process_log(self, log: Dict[str, Any], contract_name: str):
-        async with async_session_factory() as session:
+    def _process_log(self, log: Dict[str, Any], contract_name: str):
+        with SessionLocal() as session:
             event = BlockchainEvent(
                 event_name="ContractEvent",
                 contract_address=log.get("address", ""),
@@ -61,7 +67,7 @@ class BlockchainIndexer:
                 parameters=json.dumps({"topics": [t.hex() if hasattr(t, "hex") else str(t) for t in log.get("topics", [])]}),
             )
             session.add(event)
-            await session.commit()
+            session.commit()
 
     async def start_polling(self, interval_seconds: int = 5):
         """Continuous polling loop for new blocks."""

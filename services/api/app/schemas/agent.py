@@ -2,7 +2,7 @@
 Agent and Permission Pydantic Schemas
 """
 from typing import Optional, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class AgentCreate(BaseModel):
@@ -23,8 +23,7 @@ class AgentPermissionSchema(BaseModel):
     max_amount: float
     is_allowed: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class AgentResponse(BaseModel):
@@ -39,5 +38,4 @@ class AgentResponse(BaseModel):
     created_at: str
     permissions: List[AgentPermissionSchema] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

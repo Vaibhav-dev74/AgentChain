@@ -29,6 +29,16 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
             detail="Username or email already registered",
         )
 
+    if user_in.wallet_address:
+        existing_wallet = db.execute(
+            select(User).where(User.wallet_address == user_in.wallet_address)
+        ).scalar_one_or_none()
+        if existing_wallet:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Wallet address already associated with another account",
+            )
+
     user = User(
         username=user_in.username,
         email=user_in.email,
