@@ -14,5 +14,16 @@ export default defineConfig({
     port: 5173,
     host: true,
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          web3: ['viem'],
+          ui: ['framer-motion', 'lucide-react'],
+        },
+      },
+    },
+  },
 });
-

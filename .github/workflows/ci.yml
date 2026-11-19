@@ -51,6 +51,7 @@ jobs:
       - name: Run Automated Backend & Policy Tests
         run: |
           python services/api/run_tests.py
+          pytest -c services/api/pytest.ini services/api/tests
 
   frontend-build:
     name: React Web Application Build
@@ -71,6 +72,7 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
-      - name: Build Web Client
-        run: pnpm --filter @agentchain/web build
-
+      - name: Build Shared Types & Web Client
+        run: |
+          pnpm --filter @agentchain/shared-types build
+          pnpm --filter @agentchain/web build
